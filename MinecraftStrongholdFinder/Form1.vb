@@ -37,8 +37,6 @@ Public Class Form1
 
     Private Sub btnCalc_Click(sender As Object, e As EventArgs) Handles btnCalc.Click
 
-        Dim shrtError As Short = 0
-
         If txbPos1X.Text <> "" And txbPos1Z.Text <> "" And txbPos1A.Text <> "" And txbPos2X.Text <> "" And txbPos2Z.Text <> "" And txbPos2A.Text <> "" Then
 
             'Gathering input from textboxes, flipping Z-axis to be able
@@ -51,65 +49,59 @@ Public Class Form1
                     sngPos2X = CSng(txbPos2X.Text)
                     sngPos2Z = CSng(txbPos2Z.Text) * -1
                     sngPos2A = CSng(txbPos2A.Text)
+
+                    'Minecraft degrees are not determined in the continuous
+                    '0-360 degree way in trig - also converting to radians
+                    sngPos1A = MinecraftDegreesToRadians(sngPos1A)
+                    sngPos2A = MinecraftDegreesToRadians(sngPos2A)
+
+                    'Using Pythagorean Theorem to find distance between Pos1 and Pos2
+                    sngPos1toPos2 = CSng(Math.Sqrt(((sngPos2X - sngPos1X) ^ 2) + ((sngPos2Z - sngPos1Z) ^ 2)))
+                    lblLegADistance.Text = CStr(sngPos1toPos2)
+
+                    'Declination angle formed by Pos1 and Pos2
+                    sngDeclination = CSng(Math.Atan2((sngPos2Z - sngPos1Z), (sngPos2X - sngPos1X)))
+
+                    'determines whether to use interior or
+                    'exterior angles for Position 1
+                    sngPos1AR = FindAngle(sngDeclination, sngPos1A)
+
+                    'Declination angle formed by Pos1 and Pos2
+                    sngDeclination = CSng(Math.Atan2((sngPos1Z - sngPos2Z), (sngPos1X - sngPos2X)))
+
+                    'determines whether to use interior or
+                    'exterior angles for Position 2
+                    sngPos2AR = FindAngle(sngDeclination, sngPos2A)
+
+                    'Finding the Stronghold's angle
+                    sngSHA = CSng(Math.PI - sngPos1AR - sngPos2AR)
+                    sngSHAR = sngSHA
+
+                    'Using Law of Sines to find distance from Position 2 to Stronghold
+                    sngPos2toSH = CSng((sngPos1toPos2 * Math.Sin(sngPos1AR)) / Math.Sin(sngSHAR))
+                    lblLegBDistance.Text = CStr(sngPos2toSH)
+
+                    'Determining Stronghold coordinates using trig and Position 2 coords
+                    sngSHX = CSng(sngPos2X + sngPos2toSH * Math.Cos(sngPos2A))
+                    sngSHZ = CSng(sngPos2Z + sngPos2toSH * Math.Sin(sngPos2A))
+
+                    'PROCESSING COMPLETE!
+                    'OUTPUTTING DATA!
+                    lblSHX.Text = CStr(CInt(sngSHX))
+                    lblSHZ.Text = CStr(CInt(sngSHZ) * -1)
+
+                    'If the Stronghold's angle is smaller than .3 radians (17 degrees), 
+                    'then the margin of error may be high
+                    'Alerting user to this fact
+                    If Math.Abs(sngSHA) < 0.3 Then
+                        MessageBox.Show("Margin of error high. Please move farther away from Position 1.")
+                    End If
                 Catch ex As Exception
-                    shrtError = 1
                     MessageBox.Show("Position 2 coordinates invalid. Please check your input.")
                 End Try
             Catch ex As Exception
-                shrtError = 1
                 MessageBox.Show("Position 1 coordinates invalid. Please check your input.")
             End Try
-
-            If shrtError = 0 Then
-
-                'Minecraft degrees are not determined in the continuous
-                '0-360 degree way in trig - also converting to radians
-                sngPos1A = MinecraftDegreesToRadians(sngPos1A)
-                sngPos2A = MinecraftDegreesToRadians(sngPos2A)
-
-                'Using Pythagorean Theorem to find distance between Pos1 and Pos2
-                sngPos1toPos2 = CSng(Math.Sqrt(((sngPos2X - sngPos1X) ^ 2) + ((sngPos2Z - sngPos1Z) ^ 2)))
-                lblLegADistance.Text = CStr(sngPos1toPos2)
-
-                'Declination angle formed by Pos1 and Pos2
-                sngDeclination = CSng(Math.Atan2((sngPos2Z - sngPos1Z), (sngPos2X - sngPos1X)))
-
-                'determines whether to use interior or
-                'exterior angles for Position 1
-                sngPos1AR = FindAngle(sngDeclination, sngPos1A)
-
-                'Declination angle formed by Pos1 and Pos2
-                sngDeclination = CSng(Math.Atan2((sngPos1Z - sngPos2Z), (sngPos1X - sngPos2X)))
-
-                'determines whether to use interior or
-                'exterior angles for Position 2
-                sngPos2AR = FindAngle(sngDeclination, sngPos2A)
-
-                'Finding the Stronghold's angle
-                sngSHA = CSng(Math.PI - sngPos1AR - sngPos2AR)
-                sngSHAR = sngSHA
-
-                'Using Law of Sines to find distance from Position 2 to Stronghold
-                sngPos2toSH = CSng((sngPos1toPos2 * Math.Sin(sngPos1AR)) / Math.Sin(sngSHAR))
-                lblLegBDistance.Text = CStr(sngPos2toSH)
-
-                'Determining Stronghold coordinates using trig and Position 2 coords
-                sngSHX = CSng(sngPos2X + sngPos2toSH * Math.Cos(sngPos2A))
-                sngSHZ = CSng(sngPos2Z + sngPos2toSH * Math.Sin(sngPos2A))
-
-                'PROCESSING COMPLETE!
-                'OUTPUTTING DATA!
-                lblSHX.Text = CStr(CInt(sngSHX))
-                lblSHZ.Text = CStr(CInt(sngSHZ) * -1)
-
-                'If the Stronghold's angle is smaller than .3 radians (17 degrees), 
-                'then the margin of error may be high
-                'Alerting user to this fact
-                If Math.Abs(sngSHA) < 0.3 Then
-                    MessageBox.Show("Margin of error high. Please move farther away from Position 1.")
-                End If
-            End If
-
         Else
             MessageBox.Show("One or more fields are empty.")
         End If
@@ -247,23 +239,27 @@ Public Class Form1
 
     Public Sub ProcessServerResponse(ByVal sender As Object, ByVal e As DownloadStringCompletedEventArgs)
 
-        Dim LatestVersion As String = e.Result 'To download the Lastest Version from a specified URL.
-        Dim CurrentApp As String 'Gets the applications current version
-        CurrentApp = My.Application.Info.Version.ToString
+        Try
+            Dim LatestVersion As String = e.Result 'To download the Lastest Version from a specified URL.
+            Dim CurrentApp As String 'Gets the applications current version
+            CurrentApp = My.Application.Info.Version.ToString
 
-        If CurrentApp < LatestVersion Then 'If the applications current version is less than the Latest version Then it will update, otherwise just do nothing or w/e you want.
+            If CurrentApp < LatestVersion Then 'If the applications current version is less than the Latest version Then it will update, otherwise just do nothing or w/e you want.
 
-            If MessageBox.Show("A new update is available!" & vbNewLine & "Would you like to update?", "Updater", MessageBoxButtons.YesNo, MessageBoxIcon.Question) = Windows.Forms.DialogResult.Yes Then 'Message box dialog asking the user if they wish to update or not.
-                My.Computer.Network.DownloadFile("http://shk.qc.to/MinecraftStrongholdFinder.exe", Application.StartupPath & "\Updated\MinecraftStrongholdFinder.exe") 'If they choose Yes, it will download the latest version exe
-                MsgBox("The update has been downloaded!" & vbNewLine & "The application will now Exit.") 'telling the user the app will close
-                End 'exits application
-            Else
-                'If they choose No
+                If MessageBox.Show("A new update is available!" & vbNewLine & "Would you like to update?", "Updater", MessageBoxButtons.YesNo, MessageBoxIcon.Question) = Windows.Forms.DialogResult.Yes Then 'Message box dialog asking the user if they wish to update or not.
+                    My.Computer.Network.DownloadFile("http://shk.qc.to/MinecraftStrongholdFinder.exe", Application.StartupPath & "\Updated\MinecraftStrongholdFinder.exe") 'If they choose Yes, it will download the latest version exe
+                    MsgBox("The update has been downloaded!" & vbNewLine & "The application will now Exit.") 'telling the user the app will close
+                    End 'exits application
+                Else
+                    'If they choose No
+                End If
+
+            ElseIf CurrentApp = LatestVersion Then
+                MsgBox("Program is up to date.", , "") 'anything other than the current applications version being less than the latest version.
             End If
-
-        ElseIf CurrentApp = LatestVersion Then
-            MsgBox("Program is up to date.", , "") 'anything other than the current applications version being less than the latest version.
-        End If
+        Catch ex As Exception
+            MsgBox("Error contacting server.")
+        End Try
     End Sub
 End Class
 
